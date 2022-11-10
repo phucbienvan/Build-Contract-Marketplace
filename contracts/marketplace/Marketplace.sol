@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/structs/Enumerableset.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract Marketplace is Ownable {
     using Counters for Counters.Counter;
@@ -117,6 +117,8 @@ contract Marketplace is Ownable {
         address paymentToken_, 
         uint256 price_
     ) public onlySupportedPaymentToken(paymentToken_) {
+        require(nftContract.ownerOf(tokenId_) == _msgSender(), "the contract is unauthorized");
+        require(nftContract.isApprovedForAll(_msgSender(), address(this)));
         uint256 _orderId = _orderIdCount.current();
         orders[_orderId] = Order(
             _msgSender(),
@@ -144,6 +146,7 @@ contract Marketplace is Ownable {
         require(!isSeller(orderId_, _msgSender()), "buyer and seller");
         require(orders[orderId_].buyer == address(0), "buyer must be zero");
         Order storage _order = orders[orderId_];
+        require(_order.price > 0, "order has been canceled");
         _order.buyer = _msgSender();
         uint256 _feeAmount = _caculateFee(orderId_);
         if (_feeAmount > 0) {
